@@ -83,7 +83,7 @@ class TaggingMetrics:
       endidx = sample_tag.index('$end$')
       sample_tag, sample_pred = sample_tag[:endidx], sample_pred[:endidx] 
     sample_tag_pred = list(zip(sample_tag, sample_pred))
-    #print(sample_tag_pred)
+    print(sample_tag_pred)
 
     self.brand_pos += sum([1 for pair in sample_tag_pred if (pair[0] == 'Brand')])
     self.brand_tp += sum([1 for pair in sample_tag_pred if ((pair[0] == pair[1]) and (pair[0] == 'Brand'))])
@@ -131,12 +131,12 @@ if __name__ == "__main__":
 	print("data is loaded")
 	with tf.Session(graph=loaded_graph) as session:
 		metrics = TaggingMetrics(is_s2s=False)
-		loader =tf.train.import_meta_graph('./5500/s2s_per500-5500.meta')
-		loader.restore(session,'./5500/s2s_per500-5500')
+		loader =tf.train.import_meta_graph('./luong_model/s2s_per500-30000.meta')
+		loader.restore(session,'./luong_model/s2s_per500-30000')
 		mean_loss = 0
 		print("ready to start inferring")
 		step = 0
-		test_generator = reader.data_generator_s2s_predict('BingTest_1C.txt', tag_to_id, 20, 32)
+		test_generator = reader.data_generator_s2s_predict('Test_March_2016_1C.tsv', tag_to_id, 20, 20)
 		sentinel = object()
 		has_next = True
 		encoder_inputs = loaded_graph.get_tensor_by_name('encoder_inputs:0')
@@ -147,10 +147,11 @@ if __name__ == "__main__":
 			if (future_data is sentinel):
 			 	break
 			batch_features, batch_labels, lengths, labels = future_data[0], future_data[1], future_data[2], future_data[3]
-			print("ready to generate output")
+			print(batch_features[0])
 			outputs = session.run([beam_search_decoder_out], {encoder_inputs:batch_features[0],encoder_inputs_length:lengths})
 			#print(outputs, outputs[0][:,:,0], pred_to_tag(labels), pred_to_tag(outputs[0][:,:,0]))
 			metrics.update_metrics(pred_to_tag(labels),pred_to_tag(outputs[0][:,:,0]))
+			print ("current overall accuracy is " + str(metrics.get_accuracy()))
 	print ("overall accuracy is " + str(metrics.get_accuracy()))
 	print ("overall brand accuracy is " + str(metrics.get_accuracy("brand")))
 	print ("overall product class accuracy is " + str(metrics.get_accuracy("productclass")))
